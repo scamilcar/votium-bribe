@@ -13,11 +13,11 @@ contract VotiumBribeTest is DSTest {
     IERC20 flx;
 
     function setUp() public {
-        incentive = new Incentive(FLX, AMOUNT_PER_VOTE, address(0x1));
+        incentive = new Incentive(FLX, AMOUNT_PER_VOTE, address(0x1), 34);
         flx = IERC20(FLX);
     }
     
-    // Should deposit 'amount' in the contract.
+    // Should test if it is possible to deposit 'amount' in the contract.
     function test_depositIncentive() public {
         uint256 amount = 100*10**18;
         uint256 preBalance = flx.balanceOf(address(incentive));
@@ -28,22 +28,19 @@ contract VotiumBribeTest is DSTest {
     }
 
     // Should test if it is possible to deposit 'amount' in the contract and fail since depositing less than amountPerVote.
-    function testFail_depositIncentive() public {
+    function testFail_depositIncentive_deposit_less() public {
         uint256 amount = 40*10**18;
         flx.approve(address(incentive), amount);
         incentive.depositIncentive(amount);
     }
 
-    function test_incentivizeGauge() public {
-        uint256 amount = 100*10**18;
-        flx.approve(address(bribe), amount);
+    // Should test if the depositor is refunded as intended when the 'amount' deposited is superior to but not a multiple of 'amountPerVote'. 
+    function test_depositIncentve_refund() public {
+        uint256 amount = 70*10**18;
+        uint256 expectedRefund = amount % AMOUNT_PER_VOTE;
+        flx.approve(address(incentive), amount);
         incentive.depositIncentive(amount);
-        uint256 preBalanceBribe = spell.balanceOf(address(bribe));
-        uint256 preBalanceCRVBribeV2 = spell.balanceOf(BRIBE_V2);
-        incentive.incentivizeVote();
-        uint256 postBalanceBribe = spell.balanceOf(address(bribe));
-        uint256 postBalanceCRVBribeV2 = spell.balanceOf(BRIBE_V2);
-        assertEq(preBalanceBribe - AMOUNT_PER_VOTE, postBalanceBribe);
-        assertEq(preBalanceCRVBribeV2 + AMOUNT_PER_VOTE, postBalanceCRVBribeV2);
-
+        uint256 balance = flx.balanceOf(address(incentive));
+        assertEq(balance, amount - expectedRefund);
+    }
 }
